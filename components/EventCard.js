@@ -1,26 +1,49 @@
 "use client";
 
-import { formatThaiDateRange, formatEventTime, todayKey } from "../lib/dateUtils";
+import {
+  formatThaiDateRange,
+  formatThaiDateTime,
+  formatEventTime,
+} from "../lib/dateUtils";
 
-function daysUntil(startKey) {
-  const today = todayKey();
-  const [ty, tm, td] = today.split("-").map(Number);
-  const [sy, sm, sd] = startKey.split("-").map(Number);
-  const diffMs = new Date(sy, sm - 1, sd) - new Date(ty, tm - 1, td);
-  return Math.round(diffMs / (1000 * 60 * 60 * 24));
+function combineDateTime(dateKey, timeStr, fallbackTime) {
+  const [y, m, d] = dateKey.split("-").map(Number);
+  const time = timeStr ? timeStr.slice(0, 5) : fallbackTime;
+  const [h, min] = time.split(":").map(Number);
+  return new Date(y, m - 1, d, h, min, 0, 0);
 }
 
-function getUrgency(startKey) {
-  const days = daysUntil(startKey);
-  if (days < 0) return { label: "ผ่านไปแล้ว", tone: "past" };
-  if (days === 0) return { label: "วันนี้", tone: "urgent" };
-  if (days <= 3) return { label: `อีก ${days} วัน`, tone: "urgent" };
-  if (days <= 7) return { label: `อีก ${days} วัน`, tone: "soon" };
+function getUrgency(event) {
+  const now = new Date();
+
+  // "Passed" is judged against the real end date+time (defaulting to end
+  // of day if no end_time was set), not just the calendar date.
+  const endDateTime = combineDateTime(event.end_date, event.end_time, "23:59");
+  if (now > endDateTime) {
+    return { label: "ผ่านไปแล้ว", tone: "past" };
+  }
+
+  const startDateTime = combineDateTime(event.start_date, event.start_time, "00:00");
+  if (now >= startDateTime) {
+    return { label: "กำลังดำเนินอยู่", tone: "urgent" };
+  }
+
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfEventDay = new Date(
+    startDateTime.getFullYear(),
+    startDateTime.getMonth(),
+    startDateTime.getDate()
+  );
+  const dayDiff = Math.round((startOfEventDay - startOfToday) / (1000 * 60 * 60 * 24));
+
+  if (dayDiff === 0) return { label: "วันนี้", tone: "urgent" };
+  if (dayDiff <= 3) return { label: `อีก ${dayDiff} วัน`, tone: "urgent" };
+  if (dayDiff <= 7) return { label: `อีก ${dayDiff} วัน`, tone: "soon" };
   return null;
 }
 
 export default function EventCard({ event, onEdit, onDelete }) {
-  const urgency = getUrgency(event.start_date);
+  const urgency = getUrgency(event);
   const toneClass = urgency ? `event-card--${urgency.tone}` : "";
   const links =
     event.links && event.links.length > 0
@@ -40,13 +63,28 @@ export default function EventCard({ event, onEdit, onDelete }) {
           )}
         </div>
 
-        <p className="event-card__range">
-          {formatThaiDateRange(event.start_date, event.end_date)}
-        </p>
-        {formatEventTime(event.start_time, event.end_time) && (
-          <p className="event-card__time">
-            {formatEventTime(event.start_time, event.end_time)}
-          </p>
+        {event.start_date === event.end_date ? (
+          <>
+            <p className="event-card__range">
+              {formatThaiDateRange(event.start_date, event.end_date)}
+            </p>
+            {formatEventTime(event.start_time, event.end_time) && (
+              <p className="event-card__time">
+                {formatEventTime(event.start_time, event.end_time)}
+              </p>
+            )}
+          </>
+        ) : (
+          <div className="event-card__daterange">
+            <p className="event-card__range">
+              <span className="event-card__range-label">วันเริ่ม :</span>{" "}
+              {formatThaiDateTime(event.start_date, event.start_time)}
+            </p>
+            <p className="event-card__range">
+              <span className="event-card__range-label">วันสุดท้าย :</span>{" "}
+              {formatThaiDateTime(event.end_date, event.end_time)}
+            </p>
+          </div>
         )}
         {event.university && (
           <p className="event-card__university">{event.university}</p>
