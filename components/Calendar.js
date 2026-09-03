@@ -1,5 +1,7 @@
 "use client";
 
+import { DEFAULT_EVENT_COLOR } from "../lib/dateUtils";
+
 const WEEKDAYS = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
 const MONTH_NAMES = [
   "มกราคม",
@@ -15,6 +17,8 @@ const MONTH_NAMES = [
   "พฤศจิกายน",
   "ธันวาคม",
 ];
+
+const MAX_BARS_PER_DAY = 3;
 
 function toDateKey(year, month, day) {
   const m = String(month + 1).padStart(2, "0");
@@ -61,10 +65,22 @@ export function monthLabel(year, month) {
   return `${MONTH_NAMES[month]} ${year}`;
 }
 
+function barStyle(event, dateKey) {
+  const isStart = event.start_date === dateKey;
+  const isEnd = event.end_date === dateKey;
+  return {
+    backgroundColor: event.color || DEFAULT_EVENT_COLOR,
+    borderTopLeftRadius: isStart ? 4 : 0,
+    borderBottomLeftRadius: isStart ? 4 : 0,
+    borderTopRightRadius: isEnd ? 4 : 0,
+    borderBottomRightRadius: isEnd ? 4 : 0,
+  };
+}
+
 export default function Calendar({
   year,
   month,
-  eventCounts,
+  eventsByDate,
   selectedDate,
   onSelectDate,
   onPrevMonth,
@@ -100,7 +116,9 @@ export default function Calendar({
       <div className="day-grid">
         {cells.map((cell, idx) => {
           const key = toDateKey(cell.year, cell.month, cell.day);
-          const count = eventCounts[key] || 0;
+          const dayEvents = eventsByDate[key] || [];
+          const visible = dayEvents.slice(0, MAX_BARS_PER_DAY);
+          const overflow = dayEvents.length - visible.length;
           const isToday = key === todayKey;
           const isSelected = key === selectedDate;
 
@@ -117,11 +135,19 @@ export default function Calendar({
               onClick={() => onSelectDate(key)}
             >
               <span className="day-cell__num">{cell.day}</span>
-              {count > 0 && (
-                <span className="day-cell__dots">
-                  {Array.from({ length: Math.min(count, 4) }).map((_, i) => (
-                    <span className="dot" key={i} />
+              {visible.length > 0 && (
+                <span className="day-cell__bars">
+                  {visible.map((ev) => (
+                    <span
+                      className="day-bar"
+                      key={ev.id}
+                      style={barStyle(ev, key)}
+                      title={ev.title}
+                    />
                   ))}
+                  {overflow > 0 && (
+                    <span className="day-cell__more">+{overflow}</span>
+                  )}
                 </span>
               )}
             </button>

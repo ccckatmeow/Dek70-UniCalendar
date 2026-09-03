@@ -1,54 +1,60 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import Calendar from "../components/Calendar";
 import DayPanel from "../components/DayPanel";
+import AgendaView from "../components/AgendaView";
+import FilterBar from "../components/FilterBar";
+import AddEventForm from "../components/AddEventForm";
 import { supabase } from "../lib/supabaseClient";
+import { pad, todayKey, buildDayGroups } from "../lib/dateUtils";
 
-function pad(n) {
-  return String(n).padStart(2, "0");
+const EMPTY_FILTERS = { search: "", university: "", tcasRound: "", tags: [] };
+
+function matchesFilters(ev, filters) {
+  if (filters.search) {
+    const q = filters.search.toLowerCase();
+    const hay = `${ev.title} ${ev.university || ""}`.toLowerCase();
+    if (!hay.includes(q)) return false;
+  }
+  if (filters.university && ev.university !== filters.university) return false;
+  if (filters.tcasRound && ev.tcas_round !== filters.tcasRound) return false;
+  if (filters.tags.length > 0) {
+    const evTags = ev.tags || [];
+    const hasAll = filters.tags.every((t) => evTags.includes(t));
+    if (!hasAll) return false;
+  }
+  return true;
 }
 
 export default function Home() {
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
-  const [selectedDate, setSelectedDate] = useState(
-    `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`
-  );
-  const [eventsByDate, setEventsByDate] = useState({});
+  const [selectedDate, setSelectedDate] = useState(todayKey());
+  const [view, setView] = useState("calendar"); // "calendar" | "agenda"
+  const [filters, setFilters] = useState(EMPTY_FILTERS);
+  const [allEvents, setAllEvents] = useState([]);
   const [loadError, setLoadError] = useState("");
+  const [editingEvent, setEditingEvent] = useState(null);
 
-  const loadMonth = useCallback(async (y, m) => {
-    const rangeStart = `${y}-${pad(m + 1)}-01`;
-    const lastDay = new Date(y, m + 1, 0).getDate();
-    const rangeEnd = `${y}-${pad(m + 1)}-${pad(lastDay)}`;
-
+  const loadAllEvents = useCallback(async () => {
     const { data, error } = await supabase
       .from("events")
       .select("*")
-      .gte("event_date", rangeStart)
-      .lte("event_date", rangeEnd)
-      .order("created_at", { ascending: true });
+      .order("start_date", { ascending: true });
 
     if (error) {
       setLoadError("โหลดข้อมูลไม่สำเร็จ ตรวจสอบการตั้งค่า Supabase");
       return;
     }
     setLoadError("");
-
-    const grouped = {};
-    for (const ev of data) {
-      const key = ev.event_date;
-      if (!grouped[key]) grouped[key] = [];
-      grouped[key].push(ev);
-    }
-    setEventsByDate(grouped);
+    setAllEvents(data);
   }, []);
 
   useEffect(() => {
-    loadMonth(year, month);
-  }, [year, month, loadMonth]);
+    loadAllEvents();
+  }, [loadAllEvents]);
 
   function goPrevMonth() {
     if (month === 0) {
@@ -68,13 +74,27 @@ export default function Home() {
     }
   }
 
-  async function handleAdd(eventData) {
-    const { error } = await supabase.from("events").insert({
-      event_date: selectedDate,
-      ...eventData,
-    });
-    if (error) throw error;
-    await loadMonth(year, month);
+  async function handleFormSubmit(eventData) {
+    if (editingEvent) {
+      const { error } = await supabase
+        .from("events")
+        .update({ ...eventData, updated_at: new Date().toISOString() })
+        .eq("id", editingEvent.id);
+      if (error) throw error;
+      setEditingEvent(null);
+    } else {
+      const { error } = await supabase.from("events").insert(eventData);
+      if (error) throw error;
+    }
+    await loadAllEvents();
+  }
+
+  function handleEditRequest(event) {
+    setEditingEvent(event);
+  }
+
+  function handleCancelEdit() {
+    setEditingEvent(null);
   }
 
   async function handleDelete(id) {
@@ -83,11 +103,35 @@ export default function Home() {
       setLoadError("ลบไม่สำเร็จ ลองใหม่อีกครั้ง");
       return;
     }
-    await loadMonth(year, month);
+    if (editingEvent?.id === id) setEditingEvent(null);
+    await loadAllEvents();
   }
 
-  const eventCounts = Object.fromEntries(
-    Object.entries(eventsByDate).map(([key, list]) => [key, list.length])
+  const filteredEvents = useMemo(
+    () => allEvents.filter((ev) => matchesFilters(ev, filters)),
+    [allEvents, filters]
+  );
+
+  const knownUniversities = useMemo(() => {
+    const set = new Set(allEvents.map((ev) => ev.university).filter(Boolean));
+    return Array.from(set).sort();
+  }, [allEvents]);
+
+  const knownTags = useMemo(() => {
+    const set = new Set();
+    for (const ev of allEvents) {
+      for (const tag of ev.tags || []) set.add(tag);
+    }
+    return Array.from(set).sort();
+  }, [allEvents]);
+
+  const rangeStart = `${year}-${pad(month + 1)}-01`;
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  const rangeEnd = `${year}-${pad(month + 1)}-${pad(lastDay)}`;
+
+  const eventsByDate = useMemo(
+    () => buildDayGroups(filteredEvents, rangeStart, rangeEnd),
+    [filteredEvents, rangeStart, rangeEnd]
   );
   const selectedEvents = eventsByDate[selectedDate] || [];
 
@@ -98,24 +142,77 @@ export default function Home() {
         <h1 className="masthead__title">กำหนดการเข้ามหาวิทยาลัย</h1>
       </header>
 
+      <div className="view-toggle">
+        <button
+          type="button"
+          className={view === "calendar" ? "view-toggle__btn--active" : ""}
+          onClick={() => setView("calendar")}
+        >
+          ปฏิทิน
+        </button>
+        <button
+          type="button"
+          className={view === "agenda" ? "view-toggle__btn--active" : ""}
+          onClick={() => setView("agenda")}
+        >
+          รายการ
+        </button>
+      </div>
+
+      <FilterBar
+        filters={filters}
+        onChange={setFilters}
+        knownUniversities={knownUniversities}
+        knownTags={knownTags}
+      />
+
       {loadError && <p className="status-note status-note--error">{loadError}</p>}
 
-      <Calendar
-        year={year}
-        month={month}
-        eventCounts={eventCounts}
-        selectedDate={selectedDate}
-        onSelectDate={setSelectedDate}
-        onPrevMonth={goPrevMonth}
-        onNextMonth={goNextMonth}
-      />
-
-      <DayPanel
-        dateKey={selectedDate}
-        events={selectedEvents}
-        onAdd={handleAdd}
-        onDelete={handleDelete}
-      />
+      {view === "calendar" ? (
+        <>
+          <Calendar
+            year={year}
+            month={month}
+            eventsByDate={eventsByDate}
+            selectedDate={selectedDate}
+            onSelectDate={setSelectedDate}
+            onPrevMonth={goPrevMonth}
+            onNextMonth={goNextMonth}
+          />
+          <DayPanel
+            key={selectedDate}
+            dateKey={selectedDate}
+            events={selectedEvents}
+            knownUniversities={knownUniversities}
+            editingEvent={editingEvent}
+            onEdit={handleEditRequest}
+            onCancelEdit={handleCancelEdit}
+            onSubmit={handleFormSubmit}
+            onDelete={handleDelete}
+          />
+        </>
+      ) : (
+        <>
+          <AgendaView
+            events={filteredEvents}
+            onEdit={handleEditRequest}
+            onDelete={handleDelete}
+          />
+          <div className="panel">
+            <h2 className="panel__date">
+              {editingEvent ? "แก้ไขกำหนดการ" : "เพิ่มกำหนดการใหม่"}
+            </h2>
+            <AddEventForm
+              key={editingEvent ? `edit-${editingEvent.id}` : "add-agenda"}
+              defaultDate={todayKey()}
+              knownUniversities={knownUniversities}
+              initialEvent={editingEvent}
+              onSubmit={handleFormSubmit}
+              onCancel={handleCancelEdit}
+            />
+          </div>
+        </>
+      )}
     </main>
   );
 }
