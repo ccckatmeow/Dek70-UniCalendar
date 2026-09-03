@@ -139,7 +139,7 @@ export default function Home() {
     <main className="page">
       <header className="masthead">
         <p className="masthead__eyebrow">ปฏิทินรวมกำหนดการ</p>
-        <h1 className="masthead__title">กำหนดการเข้ามหาวิทยาลัย</h1>
+        <h1 className="masthead__title">กำหนดการเข้ามหาวิทยาลัย Dek70 😵‍💫❤️‍🔥 </h1>
       </header>
 
       <div className="view-toggle">
