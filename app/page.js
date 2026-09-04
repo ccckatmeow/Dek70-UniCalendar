@@ -6,6 +6,7 @@ import DayPanel from "../components/DayPanel";
 import AgendaView from "../components/AgendaView";
 import FilterBar from "../components/FilterBar";
 import AddEventForm from "../components/AddEventForm";
+import ThemeToggle from "../components/ThemeToggle";
 import { supabase } from "../lib/supabaseClient";
 import { pad, todayKey, buildDayGroups } from "../lib/dateUtils";
 
@@ -138,8 +139,11 @@ export default function Home() {
   return (
     <main className="page">
       <header className="masthead">
-        <p className="masthead__eyebrow">ปฏิทินรวมกำหนดการ</p>
-        <h1 className="masthead__title">กำหนดการเข้ามหาวิทยาลัย Dek70 😵‍💫❤️‍🔥</h1>
+        <div>
+          <p className="masthead__eyebrow">ปฏิทินรวมกำหนดการ</p>
+          <h1 className="masthead__title">กำหนดการเข้ามหาวิทยาลัย Dek70 😵‍💫❤️‍🔥</h1>
+        </div>
+        <ThemeToggle />
       </header>
 
       <div className="view-toggle">
