@@ -91,6 +91,19 @@ a {
   gap: 16px;
 }
 
+.masthead__brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.masthead__logo {
+  flex-shrink: 0;
+  transform: rotate(-3deg);
+  width: clamp(64px, 10vw, 88px);
+  height: auto;
+}
+
 .masthead__eyebrow {
   color: var(--muted);
   font-size: 0.9rem;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from "react";
+import Image from "next/image";
 import Calendar from "../components/Calendar";
 import DayPanel from "../components/DayPanel";
 import AgendaView from "../components/AgendaView";
@@ -139,9 +140,19 @@ export default function Home() {
   return (
     <main className="page">
       <header className="masthead">
-        <div>
-          <p className="masthead__eyebrow">ปฏิทินรวมกำหนดการ</p>
-          <h1 className="masthead__title">กำหนดการเข้ามหาวิทยาลัย Dek70 😵‍💫❤️‍🔥</h1>
+        <div className="masthead__brand">
+          <Image
+            src="/logo.png"
+            alt="Dek70 Calendar"
+            width={88}
+            height={88}
+            className="masthead__logo"
+            priority
+          />
+          <div>
+            <p className="masthead__eyebrow">ปฏิทินรวมกำหนดการ</p>
+            <h1 className="masthead__title">กำหนดการเข้ามหาวิทยาลัย Dek70 😵‍💫❤️‍🔥</h1>
+          </div>
         </div>
         <ThemeToggle />
       </header>
