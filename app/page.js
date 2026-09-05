@@ -7,6 +7,7 @@ import DayPanel from "../components/DayPanel";
 import AgendaView from "../components/AgendaView";
 import FilterBar from "../components/FilterBar";
 import AddEventForm from "../components/AddEventForm";
+import CountdownView from "../components/CountdownView";
 import ThemeToggle from "../components/ThemeToggle";
 import { supabase } from "../lib/supabaseClient";
 import { pad, todayKey, buildDayGroups } from "../lib/dateUtils";
@@ -34,7 +35,7 @@ export default function Home() {
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
   const [selectedDate, setSelectedDate] = useState(todayKey());
-  const [view, setView] = useState("calendar"); // "calendar" | "agenda"
+  const [view, setView] = useState("calendar"); // "calendar" | "agenda" | "countdown"
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [allEvents, setAllEvents] = useState([]);
   const [loadError, setLoadError] = useState("");
@@ -172,14 +173,23 @@ export default function Home() {
         >
           รายการ
         </button>
+        <button
+          type="button"
+          className={view === "countdown" ? "view-toggle__btn--active" : ""}
+          onClick={() => setView("countdown")}
+        >
+          นับถอยหลัง ⏳
+        </button>
       </div>
 
-      <FilterBar
-        filters={filters}
-        onChange={setFilters}
-        knownUniversities={knownUniversities}
-        knownTags={knownTags}
-      />
+      {view !== "countdown" && (
+        <FilterBar
+          filters={filters}
+          onChange={setFilters}
+          knownUniversities={knownUniversities}
+          knownTags={knownTags}
+        />
+      )}
 
       {loadError && <p className="status-note status-note--error">{loadError}</p>}
 
@@ -206,7 +216,7 @@ export default function Home() {
             onDelete={handleDelete}
           />
         </>
-      ) : (
+      ) : view === "agenda" ? (
         <>
           <AgendaView
             events={filteredEvents}
@@ -227,6 +237,9 @@ export default function Home() {
             />
           </div>
         </>
+      ) : (
+        // ฟังก์ชันนับถอยหลัง — แยกจากปฏิทิน/รายการ ใช้ allEvents ทั้งหมด ไม่ผูกกับตัวกรอง
+        <CountdownView events={allEvents} />
       )}
     </main>
   );

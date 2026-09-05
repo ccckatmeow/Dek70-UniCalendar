@@ -845,3 +845,104 @@ html.dark .day-cell--today .day-cell__num {
   border-color: var(--ink);
   box-shadow: 0 0 0 2px var(--surface) inset;
 }
+
+/* --- ฟังก์ชันนับถอยหลัง (แยกจากปฏิทิน/รายการ) --- */
+
+.countdown-view--grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+  padding-top: 8px;
+}
+
+/* การ์ดสปอตไลต์ — ตั้งใจให้เป็นโทนเข้มคงที่เสมอ ไม่ผูกกับ light/dark toggle
+   ของเว็บ เพราะอยากให้แต่ละช่องเด่นแยกจากกันชัดเจน เหมือนป้ายนับถอยหลังที่แชร์แคปได้ */
+.countdown-card {
+  position: relative;
+  background: #2b2620;
+  border: 3px solid #1a1712;
+  border-radius: 22px 26px 20px 28px / 24px 20px 28px 22px;
+  box-shadow: 5px 5px 0 0 var(--primary-dark, #b37200);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 22px 16px;
+  text-align: center;
+  overflow: hidden;
+  min-height: 220px;
+}
+
+/* กำลังดำเนินอยู่ → ขอบเน้นสีแดง/ส้มไฟ ให้ดูเร่งด่วนกว่าเพื่อน */
+.countdown-card--ongoing {
+  box-shadow: 5px 5px 0 0 var(--danger, #e8543e);
+}
+
+/* จบไปแล้ว → หรี่ลง แยกจากกลุ่มที่ยังใช้งานอยู่ชัดเจน */
+.countdown-card--past {
+  opacity: 0.55;
+  box-shadow: none;
+}
+
+.countdown-card__decor {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  font-size: 1.4rem;
+  transform: rotate(12deg);
+}
+
+.countdown-card__number {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(2.2rem, 12vw, 3rem);
+  color: var(--primary);
+  margin: 0;
+  line-height: 1;
+}
+
+.countdown-card--ongoing .countdown-card__number {
+  color: var(--danger, #e8543e);
+}
+
+.countdown-card__number--muted {
+  color: #9a917f;
+  font-size: 1.3rem;
+}
+
+.countdown-card__caption {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--primary);
+  margin: 0;
+}
+
+.countdown-card--ongoing .countdown-card__caption {
+  color: #ffb2a6;
+}
+
+.countdown-card__caption-sub {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: 0.75rem;
+  color: #b8ac98;
+  display: block;
+  margin-top: 2px;
+}
+
+.countdown-card__title {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #f3eee3;
+  margin: 4px 0 0;
+  max-width: 95%;
+}
+
+.countdown-card__meta {
+  font-size: 0.75rem;
+  color: #b8ac98;
+  margin: 4px 0 0;
+}
