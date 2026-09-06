@@ -8,6 +8,7 @@ import AgendaView from "../components/AgendaView";
 import FilterBar from "../components/FilterBar";
 import AddEventForm from "../components/AddEventForm";
 import CountdownView from "../components/CountdownView";
+import Board from "../components/Board";
 import ThemeToggle from "../components/ThemeToggle";
 import { supabase } from "../lib/supabaseClient";
 import { pad, todayKey, buildDayGroups } from "../lib/dateUtils";
@@ -35,7 +36,7 @@ export default function Home() {
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
   const [selectedDate, setSelectedDate] = useState(todayKey());
-  const [view, setView] = useState("calendar"); // "calendar" | "agenda" | "countdown"
+  const [view, setView] = useState("calendar"); // "calendar" | "agenda" | "countdown" | "board"
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [allEvents, setAllEvents] = useState([]);
   const [loadError, setLoadError] = useState("");
@@ -180,9 +181,16 @@ export default function Home() {
         >
           นับถอยหลัง ⏳
         </button>
+        <button
+          type="button"
+          className={view === "board" ? "view-toggle__btn--active" : ""}
+          onClick={() => setView("board")}
+        >
+          บอร์ด 💬
+        </button>
       </div>
 
-      {view !== "countdown" && (
+      {view !== "board" && (
         <FilterBar
           filters={filters}
           onChange={setFilters}
@@ -191,7 +199,9 @@ export default function Home() {
         />
       )}
 
-      {loadError && <p className="status-note status-note--error">{loadError}</p>}
+      {loadError && view !== "board" && (
+        <p className="status-note status-note--error">{loadError}</p>
+      )}
 
       {view === "calendar" ? (
         <>
@@ -237,9 +247,12 @@ export default function Home() {
             />
           </div>
         </>
+      ) : view === "countdown" ? (
+        // ฟังก์ชันนับถอยหลัง — แยกจากปฏิทิน/รายการ แต่ยังกรองด้วย FilterBar เดียวกันได้
+        <CountdownView events={filteredEvents} />
       ) : (
-        // ฟังก์ชันนับถอยหลัง — แยกจากปฏิทิน/รายการ ใช้ allEvents ทั้งหมด ไม่ผูกกับตัวกรอง
-        <CountdownView events={allEvents} />
+        // ฟังก์ชันบอร์ด — แชร์ลิงก์ ไม่เกี่ยวกับตัวกรองกำหนดการเลย จึงจัดการข้อมูลของตัวเอง
+        <Board />
       )}
     </main>
   );
